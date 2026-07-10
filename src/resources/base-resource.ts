@@ -8,11 +8,13 @@ import { fetchAllPages, iteratePages } from '../bulk/paginator.js';
 
 export interface ResourceOptions {
   searchEndpoint?: boolean;
+  searchMethod?: 'GET' | 'POST';
   mergeable?: boolean;
   listMethod?: 'GET' | 'POST';
   listPath?: string;
   searchPath?: string;
   wrapperKey?: string;
+  responseKey?: string;
 }
 
 export class BaseResource<T = unknown> {
@@ -37,6 +39,7 @@ export class BaseResource<T = unknown> {
     this.resourceName = resourceName;
     this.options = {
       searchEndpoint: true,
+      searchMethod: 'POST',
       mergeable: false,
       listMethod: 'GET',
       ...options,
@@ -70,7 +73,7 @@ export class BaseResource<T = unknown> {
       operation: 'list',
     });
 
-    const normalized = normalizePaginatedResponse<T>(response);
+    const normalized = normalizePaginatedResponse<T>(response, this.options.responseKey);
     const ctx = { resource: this.resourceName, operation: 'list' as const };
     const data = await applyTransformerToArray(
       normalized.data,
@@ -82,18 +85,28 @@ export class BaseResource<T = unknown> {
     return { data: data as T[], pagination: normalized.pagination };
   }
 
-  async search(params?: SearchParams): Promise<ListResult<T>> {
+  async search(params?: SearchParams | string): Promise<ListResult<T>> {
+    const normalizedParams = normalizeSearchParams(params);
+
+    if (this.options.searchMethod === 'GET') {
+      return this.list(this.buildListParamsFromSearch(normalizedParams));
+    }
+
     const path = this.options.searchPath ?? `${this.resourcePath}/search`;
-    const body = this.buildSearchBody(params);
+    const body = this.buildSearchBody(normalizedParams);
 
     const response = await this.http.request<unknown>('POST', path, {
       body,
       operation: 'search',
-      page: params?.page,
+      page: normalizedParams?.page,
     });
 
-    const normalized = normalizePaginatedResponse<T>(response);
-    const ctx = { resource: this.resourceName, operation: 'search' as const, page: params?.page };
+    const normalized = normalizePaginatedResponse<T>(response, this.options.responseKey);
+    const ctx = {
+      resource: this.resourceName,
+      operation: 'search' as const,
+      page: normalizedParams?.page,
+    };
     const data = await applyTransformerToArray(
       normalized.data,
       ctx,
@@ -165,6 +178,8 @@ export class BaseResource<T = unknown> {
         searchPath: this.options.searchPath,
         listPath: this.options.listPath,
         listMethod: this.options.listMethod,
+        searchMethod: this.options.searchMethod,
+        responseKey: this.options.responseKey,
         scopedTransformer: this.scopedTransformer,
       },
       options
@@ -181,6 +196,8 @@ export class BaseResource<T = unknown> {
         searchPath: this.options.searchPath,
         listPath: this.options.listPath,
         listMethod: this.options.listMethod,
+        searchMethod: this.options.searchMethod,
+        responseKey: this.options.responseKey,
         scopedTransformer: this.scopedTransformer,
       },
       options
@@ -214,6 +231,37 @@ export class BaseResource<T = unknown> {
       ...rest,
     };
   }
+
+  protected buildListParamsFromSearch(params?: SearchParams): ListParams {
+    if (!params) return {};
+    const { query, sort, columns, concurrency, transformer, onPage, ...rest } = params;
+
+    const listParams: ListParams = { ...rest };
+
+    if (query) {
+      listParams.conditions = query;
+    }
+
+    if (sort) {
+      const descending = sort.startsWith('-');
+      const sortField = descending ? sort.slice(1) : sort;
+      listParams.sort_by = sortField;
+      listParams.sort_direction = descending ? 'desc' : 'asc';
+    }
+
+    if (columns) {
+      listParams.columns = columns;
+    }
+
+    return listParams;
+  }
+}
+
+function normalizeSearchParams(params?: SearchParams | string): SearchParams | undefined {
+  if (typeof params === 'string') {
+    return { search: params };
+  }
+  return params;
 }
 
 export { getTotalPages };

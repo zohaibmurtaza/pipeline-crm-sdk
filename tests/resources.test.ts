@@ -12,7 +12,7 @@ function createMockFetch() {
     if (url.includes('/companies') && method === 'GET') {
       return mockResponse(200, {
         pagination: { page: 1, pages: 1, per_page: 20, total: 1 },
-        entries: [{ id: 1, name: 'Acme Corp' }],
+        companies: [{ id: 1, name: 'Acme Corp' }],
       });
     }
 
@@ -24,7 +24,14 @@ function createMockFetch() {
     if (url.includes('/deals/search') && method === 'POST') {
       return mockResponse(200, {
         pagination: { page: 1, pages: 1, per_page: 20, total: 1 },
-        entries: [{ id: 10, name: 'Big Deal', value: 50000 }],
+        deals: [{ id: 10, name: 'Big Deal', value: 50000 }],
+      });
+    }
+
+    if (url.includes('/deals') && method === 'GET') {
+      return mockResponse(200, {
+        pagination: { page: 1, pages: 1, per_page: 20, total: 1 },
+        deals: [{ id: 10, name: 'Big Deal', value: 50000 }],
       });
     }
 
@@ -103,18 +110,28 @@ describe('PipelineCRM resources', () => {
     expect(body.company).toEqual({ name: 'New Co' });
   });
 
-  it('searches deals via objects namespace', async () => {
+  it('searches companies via GET list params', async () => {
+    const fetch = vi.fn(async (url: string) => {
+      if (url.includes('/companies')) {
+        return mockResponse(200, {
+          pagination: { page: 1, pages: 1, per_page: 20, total: 1 },
+          companies: [{ id: 2, name: 'Search Co' }],
+        });
+      }
+      return mockResponse(404, {});
+    });
+
     const crm = new PipelineCRM({
       apiKey: 'key',
       appKey: 'app',
-      fetch: createMockFetch(),
+      fetch,
       retries: { max: 0 },
     });
 
-    const result = await crm.objects.deals.search({
-      query: { deal_name: 'Big' },
-    });
-    expect(result.data[0]!.name).toBe('Big Deal');
+    const result = await crm.companies.search({ search: 'Search' });
+    expect(result.data[0]!.name).toBe('Search Co');
+    expect(String(fetch.mock.calls[0]?.[0])).toContain('/companies');
+    expect(String(fetch.mock.calls[0]?.[0])).toContain('search=Search');
   });
 
   it('lists available object types', async () => {

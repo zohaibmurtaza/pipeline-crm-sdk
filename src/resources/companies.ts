@@ -7,10 +7,11 @@ export class CompaniesResource extends BaseResource<Company> {
   constructor(http: HttpClient, config: ResolvedConfig) {
     super(http, config, 'companies', 'companies', {
       searchEndpoint: true,
+      searchMethod: 'GET',
       mergeable: true,
       listMethod: 'GET',
-      searchPath: 'companies/search',
       wrapperKey: 'company',
+      responseKey: 'companies',
     });
   }
 }

@@ -7,10 +7,11 @@ export class PeopleResource extends BaseResource<Person> {
   constructor(http: HttpClient, config: ResolvedConfig) {
     super(http, config, 'people', 'people', {
       searchEndpoint: true,
+      searchMethod: 'GET',
       mergeable: true,
       listMethod: 'GET',
-      searchPath: 'people/search',
       wrapperKey: 'person',
+      responseKey: 'people',
     });
   }
 }

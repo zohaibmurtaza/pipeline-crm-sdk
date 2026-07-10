@@ -167,22 +167,26 @@ crm.objects.for('custom_object_handle').search({ query: {} })
 
 ## Search and Filtering
 
-Use `search()` with a `query` object for advanced filtering:
+Pipeline CRM uses **GET list endpoints with query parameters** for search/filtering (not `POST /resource/search`).
 
 ```typescript
-// Search deals by stage
-const { data: deals } = await crm.deals.search({
-  query: { deal_name: 'Partnership', deal_stage: [123, 124, 125] },
+// String shorthand
+const { data: companies } = await crm.companies.search('Acme');
+
+// Object form with pagination
+const { data: companies } = await crm.companies.search({
+  search: 'Acme',
+  per_page: 50,
   page: 1,
-  per_page: 100,
-  sort: '-deals.updated_at',
 });
 
-// Search companies by name
-const { data: companies } = await crm.companies.search({
-  query: { company_name: 'Acme' },
+// Advanced filter via conditions
+const { data: deals } = await crm.deals.search({
+  query: { deal_name: 'Partnership', deal_stage: [123, 124] },
 });
 ```
+
+`search()` maps to `GET /{resource}` with `search`, `conditions`, `sort_by`, and pagination params.
 
 Query condition syntax follows Pipeline CRM's API:
 
@@ -440,7 +444,7 @@ const companies = await crm.companies.listAll();
 | SDK Method | HTTP |
 |------------|------|
 | `resource.list(params?)` | `GET /{resource}` or `POST /{resource}/search` |
-| `resource.search(body)` | `POST /{resource}/search` |
+| `resource.search(params)` | `GET /{resource}` with filter query params |
 | `resource.get(id)` | `GET /{resource}/{id}` |
 | `resource.create(data, opts?)` | `POST /{resource}` |
 | `resource.update(id, data, opts?)` | `PUT /{resource}/{id}` |

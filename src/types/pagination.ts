@@ -37,27 +37,43 @@ export interface ListResult<T> {
   pagination?: Pagination;
 }
 
-export function normalizePaginatedResponse<T>(body: unknown): ListResult<T> {
+export function normalizePaginatedResponse<T>(body: unknown, responseKey?: string): ListResult<T> {
   if (Array.isArray(body)) {
     return { data: body as T[] };
   }
 
   if (body && typeof body === 'object') {
     const obj = body as Record<string, unknown>;
-    if (Array.isArray(obj.entries)) {
+
+    if (responseKey && Array.isArray(obj[responseKey])) {
       return {
-        data: obj.entries as T[],
+        data: obj[responseKey] as T[],
         pagination: obj.pagination as Pagination | undefined,
       };
     }
-    if (Array.isArray(obj.data)) {
-      return {
-        data: obj.data as T[],
-        pagination: obj.pagination as Pagination | undefined,
-      };
-    }
-    if (Array.isArray(obj.webhooks)) {
-      return { data: obj.webhooks as T[] };
+
+    const collectionKeys = [
+      'entries',
+      'data',
+      'companies',
+      'deals',
+      'people',
+      'leads',
+      'notes',
+      'activities',
+      'calendar_entries',
+      'documents',
+      'users',
+      'webhooks',
+    ];
+
+    for (const key of collectionKeys) {
+      if (Array.isArray(obj[key])) {
+        return {
+          data: obj[key] as T[],
+          pagination: obj.pagination as Pagination | undefined,
+        };
+      }
     }
   }
 

@@ -7,10 +7,11 @@ export class DealsResource extends BaseResource<Deal> {
   constructor(http: HttpClient, config: ResolvedConfig) {
     super(http, config, 'deals', 'deals', {
       searchEndpoint: true,
+      searchMethod: 'GET',
       mergeable: false,
       listMethod: 'GET',
-      searchPath: 'deals/search',
       wrapperKey: 'deal',
+      responseKey: 'deals',
     });
   }
 }

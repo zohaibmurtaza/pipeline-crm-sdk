@@ -10,6 +10,8 @@ export interface PaginatorContext {
   searchPath?: string;
   listPath?: string;
   listMethod?: 'GET' | 'POST';
+  searchMethod?: 'GET' | 'POST';
+  responseKey?: string;
   scopedTransformer?: Transformer;
 }
 
@@ -34,7 +36,9 @@ export async function* iteratePages<T>(
 ): AsyncGenerator<T, void, undefined> {
   const concurrency = options.concurrency ?? 1;
   const perPage = options.per_page ?? 200;
-  const useSearch = Boolean(options.query || options.sort || options.columns || options.conditions);
+  const useSearch = Boolean(
+    options.query || options.sort || options.columns || options.conditions || options.search
+  );
   const transformer = options.transformer ?? ctx.scopedTransformer;
 
   const firstPage = await fetchPage<T>(http, config, ctx, { ...options, page: 1, per_page: perPage }, useSearch);
@@ -140,7 +144,7 @@ async function fetchPage<T>(
 ): Promise<{ data: T[]; pagination?: import('../types/pagination.js').Pagination }> {
   const { concurrency, transformer, onPage, ...params } = options;
 
-  if (useSearch) {
+  if (useSearch && ctx.searchMethod === 'POST') {
     const path = ctx.searchPath ?? `${ctx.resourcePath}/search`;
     const body = buildSearchBody(params);
     const response = await http.request<unknown>('POST', path, {
@@ -148,28 +152,51 @@ async function fetchPage<T>(
       operation: 'search',
       page: params.page,
     });
-    return normalizePaginatedResponse<T>(response);
+    return normalizePaginatedResponse<T>(response, ctx.responseKey);
   }
 
   const path = ctx.listPath ?? ctx.resourcePath;
   const method = ctx.listMethod ?? 'GET';
+  const requestParams = useSearch ? buildListParamsFromSearchOptions(params) : params;
 
   if (method === 'POST') {
-    const body = buildSearchBody(params);
+    const body = buildSearchBody(requestParams);
     const response = await http.request<unknown>('POST', path, {
       body,
-      operation: 'list',
+      operation: useSearch ? 'search' : 'list',
       page: params.page,
     });
-    return normalizePaginatedResponse<T>(response);
+    return normalizePaginatedResponse<T>(response, ctx.responseKey);
   }
 
   const response = await http.request<unknown>('GET', path, {
-    params,
-    operation: 'list',
+    params: requestParams,
+    operation: useSearch ? 'search' : 'list',
     page: params.page,
   });
-  return normalizePaginatedResponse<T>(response);
+  return normalizePaginatedResponse<T>(response, ctx.responseKey);
+}
+
+function buildListParamsFromSearchOptions(params: BulkOptions): Record<string, unknown> {
+  const { query, sort, columns, concurrency, transformer, onPage, ...rest } = params;
+  const listParams: Record<string, unknown> = { ...rest };
+
+  if (query) {
+    listParams.conditions = query;
+  }
+
+  if (sort) {
+    const descending = sort.startsWith('-');
+    const sortField = descending ? sort.slice(1) : sort;
+    listParams.sort_by = sortField;
+    listParams.sort_direction = descending ? 'desc' : 'asc';
+  }
+
+  if (columns) {
+    listParams.columns = columns;
+  }
+
+  return listParams;
 }
 
 function buildSearchBody(params: BulkOptions): Record<string, unknown> {

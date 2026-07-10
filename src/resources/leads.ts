@@ -7,8 +7,10 @@ export class LeadsResource extends BaseResource<Lead> {
   constructor(http: HttpClient, config: ResolvedConfig) {
     super(http, config, 'leads', 'leads', {
       searchEndpoint: false,
+      searchMethod: 'GET',
       listMethod: 'GET',
       wrapperKey: 'lead',
+      responseKey: 'leads',
     });
   }
 }
