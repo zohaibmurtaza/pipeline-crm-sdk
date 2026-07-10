@@ -1,0 +1,57 @@
+{
+  "name": "@zohaibm/pipeline-crm-sdk",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "1.0.0",
+  "description": "Official-style TypeScript/JavaScript SDK for the Pipeline CRM REST API v3",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "pipeline-crm",
+    "pipeline",
+    "crm",
+    "api",
+    "sdk",
+    "rest",
+    "migration"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zohaibmurtaza/pipeline-crm-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zohaibmurtaza/pipeline-crm-sdk/issues"
+  },
+  "homepage": "https://github.com/zohaibmurtaza/pipeline-crm-sdk#readme",
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
